@@ -1,0 +1,139 @@
+---
+title: "Air Quality Data Analysis"
+author: "Farhana Kausar Shaik"
+output: pdf_document
+---
+
+
+
+```{r}
+library(ggplot2)
+library(mosaic)
+library(GGally)
+library(olsrr)
+library(leaps)
+library(knitr)
+library(Ecdat)
+library(mctest)
+library(lmtest)
+library(MASS)
+library(car)
+```
+
+#### Guiding Question 2
+
+```{r}
+df <- read.csv('5var_air_quality.csv')
+head(df)
+```
+```{r}
+df_small = df[, 11: 16]
+head(df_small)
+```
+
+```{r}
+pairs(df_small, col = 'darkgrey')
+```
+
+The plot above shows how the data points are distributed. It does not clearly show the distribution, so, a correlation plot is constructed to find the correlation among the variables in the next plot
+
+```{r}
+ggpairs(df_small,lower = list(continuous = "smooth_loess", combo =
+"facethist", discrete = "facetbar", na = "na"))
+```
+
+Only Ozone and Outdoor Temperature have a positive correlation with the Air Quality Health Index. This means that if Ozone and/or Outdoor Temperature raise, there will be an increase in the Air Quality Health Index. Therefore, Ozone and/or Outdoor temperature are the reason behind increase in the Air Quality Health Index.
+
+```{r}
+library(corrplot)
+corr_matrix <- cor(df_small)
+
+corrplot(corr_matrix, method = "circle", type = "upper", tl.col = "black", col = c("grey", "black"))
+
+positive_corr <- corr_matrix > 0
+rect(xleft = 1, ybottom = 1, xright = ncol(corr_matrix), ytop = nrow(corr_matrix), border = "black", lwd = 2, lty = 0)
+
+negative_corr <- corr_matrix < 0
+rect(xleft = 1, ybottom = 1, xright = ncol(corr_matrix), ytop = nrow(corr_matrix), border = "black", lwd = 2, lty = 0)
+```
+
+```{r}
+vif(lm(Air.Quality.Health.Index ~ ., data = df_small))
+```
+
+#### Guiding Question 4
+
+
+```{r}
+heat_month = read.csv('heat_month.csv')
+heat_month = heat_month[6:8]
+head(heat_month, 8)
+#dim(heat_month)
+```
+
+```{r}
+summary(heat_month)
+```
+
+```{r}
+ggpairs(heat_month,lower = list(continuous = "smooth_loess", combo =
+"facethist", discrete = "facetbar", na = "na"))
+```
+
+From the above plot, we can observe that the Heat Index is positively correlated to Relative Humidity, and negatively correlated with the Outdoor Temperature. Therefore, this suggests that if the Relative Humidity increases, the Heat Index also increases and if the Outdoor Temperature decreases, the Heat Index increases.
+
+
+#### Guiding Question 5
+
+
+```{r}
+data = read.csv('gases_air_quality.csv')
+data = data[, 2: 14]
+head(data)
+idx = sample(1: dim(data)[1], dim(data)[1] * 0.75)
+train = data[idx, ]
+test = data[-idx, ]
+names(train)
+names(test)
+```
+
+```{r}
+lr = lm(Outdoor.Temperature ~ ., data = train)
+summary(lr)
+```
+
+```{r}
+lr.p <- predict(lr, test)
+```
+
+
+```{r}
+june1 <- read.csv('june2022.csv')
+june1 <- june1[, 2: 16]
+#june1 <- subset(june, Day <= 15)
+head(june1)
+```
+
+```{r}
+summary(june1)
+```
+
+
+```{r}
+tab<-predict(lr, june1)[16: 31]
+tab <- data.frame(tab)
+tab$x <- c(16: 31)
+tab
+```
+
+
+```{r}
+colnames(tab)[1] <- "temp"
+colnames(tab)[2] <- 'index'
+tab
+write.csv(tab, file = "predicted_temp.csv", row.names = FALSE)
+```
+
+The values are predicted based on the last year's summer season data(2022). The results are recorded in a csv file for visualizing the behaviour of temperature.
+
+
